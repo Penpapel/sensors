@@ -3,24 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Earth's Axis Visualization</title>
+  <title>Find the Center of the Earth</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
       margin: 0;
       overflow: hidden;
-      background-color: black;
-      transition: background-color 0.1s linear;
+      background-color: #222;
+      color: white;
     }
     #canvas {
       position: absolute;
       top: 0;
       left: 0;
     }
-    #permission {
+    #info {
       position: absolute;
       top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.7);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 10;
+    }
+    #permission {
+      display: none;
+      position: absolute;
+      top: 70px;
       left: 50%;
       transform: translateX(-50%);
       background: rgba(255, 255, 255, 0.8);
@@ -32,6 +43,11 @@
 </head>
 <body>
 
+  <div id="info">
+    <p id="coordinates">Latitude: N/A, Longitude: N/A</p>
+    <p>Rotate your device to align with the Earth’s center.</p>
+  </div>
+
   <div id="permission">
     <button onclick="requestPermission()">Enable Sensors</button>
   </div>
@@ -40,6 +56,7 @@
 
   <script>
     let canvas, ctx;
+    let targetDirection = null;  // Placeholder for the center direction
 
     // Initialize canvas and resize to fit the screen
     function initCanvas() {
@@ -52,7 +69,22 @@
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
-      drawInfiniteAxis();  // Draw the axis whenever the screen is resized
+      drawCenterIndicator();  // Draw initial center indicator
+    }
+
+    // Get geolocation and set up the initial "target" direction
+    function initGeolocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(position => {
+          const { latitude, longitude } = position.coords;
+          document.getElementById('coordinates').innerText = `Latitude: ${latitude.toFixed(5)}, Longitude: ${longitude.toFixed(5)}`;
+          targetDirection = { latitude, longitude };  // This would simulate pointing directly down to Earth's center
+        }, error => {
+          alert("Geolocation error: " + error.message);
+        });
+      } else {
+        alert("Geolocation is not supported by your browser.");
+      }
     }
 
     // Request permission for motion sensors on iOS
@@ -74,35 +106,19 @@
       }
     }
 
-    // Orientation
+    // Orientation data to adjust the direction to "find the center"
     function initOrientation() {
       if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientation', event => {
           const alpha = event.alpha || 0; // rotation around Z-axis
           const beta = event.beta || 0;   // tilt forward/backward
           const gamma = event.gamma || 0; // tilt left/right
-
-          // Update background color based on orientation
-          const r = Math.floor((alpha / 360) * 255);
-          const g = Math.floor(((beta + 180) / 360) * 255);
-          const b = Math.floor(((gamma + 90) / 180) * 255);
-          document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-          // Only display the axis line when the device is pointing close to Earth's axis direction
-          if (isPointingTowardAxis(beta, gamma)) {
-            drawInfiniteAxis();
-          } else {
-            clearCanvas();
-          }
+          
+          // Clear the canvas and redraw the center indicator based on orientation
+          clearCanvas();
+          drawCenterIndicator(alpha, beta, gamma);
         });
       }
-    }
-
-    // Determine if the device is pointing toward the Earth's axis
-    function isPointingTowardAxis(beta, gamma) {
-      const betaThreshold = 15;  // Threshold for tilt forward/backward
-      const gammaThreshold = 15; // Threshold for tilt left/right
-      return Math.abs(beta) < betaThreshold && Math.abs(gamma) < gammaThreshold;
     }
 
     // Clear the canvas
@@ -110,26 +126,4 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Draw the static, infinite axis line across the screen
-    function drawInfiniteAxis() {
-      clearCanvas(); // Clear the canvas first
-
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 2;
-
-      // Draw a vertical line that crosses the entire screen (the Earth's axis)
-      ctx.beginPath();
-      ctx.moveTo(canvas.width / 2, 0);
-      ctx.lineTo(canvas.width / 2, canvas.height);
-      ctx.stroke();
-    }
-
-    // Initialize canvas and sensors on load
-    window.onload = () => {
-      initCanvas();
-      requestPermission();
-    };
-  </script>
-
-</body>
-</html>
+    // Draw the indicator that points t
