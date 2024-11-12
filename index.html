@@ -3,29 +3,56 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orientation-Based Color Background</title>
+  <title>Orientation-Based Color and Earth's Axis Visualization</title>
   <style>
     body {
       font-family: Arial, sans-serif;
       text-align: center;
-      margin-top: 20px;
-      transition: background-color 0.1s linear; /* Smooth transition for background */
+      margin: 0;
+      overflow: hidden;
+      background-color: black;
     }
-    p { font-size: 1.1em; }
-    .sensor { margin-bottom: 15px; }
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+    }
+    #permission {
+      position: absolute;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(255, 255, 255, 0.8);
+      padding: 10px;
+      border-radius: 5px;
+      z-index: 10;
+    }
   </style>
 </head>
 <body>
 
-  <h1>iPhone Sensor Data with Orientation Color Background</h1>
-  
-  <div id="permission" class="sensor">
+  <div id="permission">
     <button onclick="requestPermission()">Enable Sensors</button>
   </div>
-  
-  <div id="orientation" class="sensor"><strong>Orientation:</strong> <span id="orientationData">N/A</span></div>
+
+  <canvas id="canvas"></canvas>
 
   <script>
+    let canvas, ctx;
+
+    // Initialize canvas and resize to fit the screen
+    function initCanvas() {
+      canvas = document.getElementById("canvas");
+      ctx = canvas.getContext("2d");
+      resizeCanvas();
+      window.addEventListener("resize", resizeCanvas);
+    }
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+
     // Request permission for motion sensors on iOS
     function requestPermission() {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
@@ -49,26 +76,53 @@
     function initOrientation() {
       if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientation', event => {
-          const alpha = event.alpha || 0;
-          const beta = event.beta || 0;
-          const gamma = event.gamma || 0;
-          
-          // Update orientation display
-          document.getElementById('orientationData').innerText = `Alpha: ${alpha.toFixed(2)}, Beta: ${beta.toFixed(2)}, Gamma: ${gamma.toFixed(2)}`;
+          const alpha = event.alpha || 0; // rotation around Z-axis
+          const beta = event.beta || 0;   // tilt forward/backward
+          const gamma = event.gamma || 0; // tilt left/right
 
-          // Map orientation values to RGB (normalize to 0-255 range)
+          // Normalize orientation values to RGB
           const r = Math.floor((alpha / 360) * 255);
           const g = Math.floor(((beta + 180) / 360) * 255);
           const b = Math.floor(((gamma + 90) / 180) * 255);
-
-          // Set background color
           document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+          // Draw Earth's axis as a line based on orientation
+          drawAxis(alpha, beta, gamma);
         });
       }
     }
 
-    // Initialize sensors on load
-    window.onload = requestPermission;
+    // Draw the axis of rotation as a line on the canvas
+    function drawAxis(alpha, beta, gamma) {
+      // Clear the canvas
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Set line properties
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+
+      // Calculate line position based on orientation
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const length = 200; // Length of the axis line
+
+      // Calculate the angle and offset based on orientation values
+      const angle = alpha * (Math.PI / 180); // Convert alpha to radians
+      const offsetX = Math.sin(angle) * length;
+      const offsetY = Math.cos(angle) * length;
+
+      // Draw the line representing the Earth's axis
+      ctx.beginPath();
+      ctx.moveTo(centerX - offsetX, centerY - offsetY);
+      ctx.lineTo(centerX + offsetX, centerY + offsetY);
+      ctx.stroke();
+    }
+
+    // Initialize canvas and sensors on load
+    window.onload = () => {
+      initCanvas();
+      requestPermission();
+    };
   </script>
 
 </body>
