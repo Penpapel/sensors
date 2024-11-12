@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orientation-Based Color and Earth's Axis Visualization</title>
+  <title>Earth's Axis Visualization with Orientation Alignment</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -34,7 +34,7 @@
   <div id="permission">
     <button onclick="requestPermission()">Enable Sensors</button>
   </div>
-
+  
   <canvas id="canvas"></canvas>
 
   <script>
@@ -80,42 +80,53 @@
           const beta = event.beta || 0;   // tilt forward/backward
           const gamma = event.gamma || 0; // tilt left/right
 
-          // Normalize orientation values to RGB
-          const r = Math.floor((alpha / 360) * 255);
-          const g = Math.floor(((beta + 180) / 360) * 255);
-          const b = Math.floor(((gamma + 90) / 180) * 255);
-          document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
-
-          // Draw Earth's axis as a line based on orientation
-          drawAxis(alpha, beta, gamma);
+          // Only show the axis line when the device is aligned with Earth's axis
+          const threshold = 15; // Threshold angle in degrees for alignment
+          
+          if (isAlignedWithEarthAxis(alpha, beta, gamma, threshold)) {
+            drawAxis(alpha, beta, gamma);
+          } else {
+            clearCanvas();
+          }
         });
       }
     }
 
-    // Draw the axis of rotation as a line on the canvas
-    function drawAxis(alpha, beta, gamma) {
-      // Clear the canvas
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    // Check if the device is aligned with the Earth's axis within a certain threshold
+    function isAlignedWithEarthAxis(alpha, beta, gamma, threshold) {
+      // Conditions to consider the device aligned with the axis of rotation
+      // For example, you could set a range around alpha = 0 or 180 and beta = 90 or -90
+      // Adjust these values according to your requirements
+      const alignedAlpha = Math.abs(alpha - 0) < threshold || Math.abs(alpha - 180) < threshold;
+      const alignedBeta = Math.abs(beta - 90) < threshold || Math.abs(beta + 90) < threshold;
+      return alignedAlpha && alignedBeta;
+    }
 
-      // Set line properties
+    // Draw the Earth's axis of rotation as a line on the canvas
+    function drawAxis(alpha, beta, gamma) {
+      clearCanvas();
       ctx.strokeStyle = "white";
       ctx.lineWidth = 2;
 
-      // Calculate line position based on orientation
       const centerX = canvas.width / 2;
       const centerY = canvas.height / 2;
-      const length = 200; // Length of the axis line
+      const length = 200;
 
-      // Calculate the angle and offset based on orientation values
+      // Calculate line angle based on orientation
       const angle = alpha * (Math.PI / 180); // Convert alpha to radians
       const offsetX = Math.sin(angle) * length;
       const offsetY = Math.cos(angle) * length;
 
-      // Draw the line representing the Earth's axis
+      // Draw the line representing Earth's axis
       ctx.beginPath();
       ctx.moveTo(centerX - offsetX, centerY - offsetY);
       ctx.lineTo(centerX + offsetX, centerY + offsetY);
       ctx.stroke();
+    }
+
+    // Clear the canvas
+    function clearCanvas() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
     // Initialize canvas and sensors on load
