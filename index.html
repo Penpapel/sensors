@@ -49,7 +49,7 @@
   </div>
 
   <div id="permission">
-    <button onclick="requestPermission()">Enable Sensors</button>
+    <button onclick="requestOrientationPermission()">Enable Sensors</button>
   </div>
 
   <canvas id="canvas"></canvas>
@@ -88,7 +88,7 @@
     }
 
     // Request permission for motion sensors on iOS
-    function requestPermission() {
+    function requestOrientationPermission() {
       if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
         DeviceOrientationEvent.requestPermission()
           .then(response => {
@@ -99,14 +99,14 @@
               alert("Permission denied for orientation sensors.");
             }
           })
-          .catch(console.error);
+          .catch(error => console.error("Orientation permission error:", error));
       } else {
         initOrientation();
         document.getElementById('permission').style.display = 'none';
       }
     }
 
-    // Orientation data to adjust the direction to "find the center"
+    // Initialize orientation if permission is granted
     function initOrientation() {
       if (window.DeviceOrientationEvent) {
         window.addEventListener('deviceorientation', event => {
@@ -126,4 +126,51 @@
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
 
-    // Draw the indicator that points t
+    // Draw the indicator that points toward the center of the Earth
+    function drawCenterIndicator(alpha = 0, beta = 0, gamma = 0) {
+      // Set indicator style
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 4;
+
+      // Calculate the position of the indicator based on the device's orientation
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      
+      // The line length represents an arrow pointing "downward" toward the Earth's center
+      const length = 100;  // Adjust length as needed for visibility
+      const offsetX = Math.sin(gamma * (Math.PI / 180)) * length;
+      const offsetY = Math.sin(beta * (Math.PI / 180)) * length;
+
+      // Draw the indicator as a line with an arrowhead pointing to the Earth's center
+      ctx.beginPath();
+      ctx.moveTo(centerX, centerY);
+      ctx.lineTo(centerX + offsetX, centerY + offsetY);
+      ctx.stroke();
+
+      // Draw arrowhead for better direction indication
+      ctx.beginPath();
+      ctx.moveTo(centerX + offsetX, centerY + offsetY);
+      ctx.lineTo(centerX + offsetX - 10, centerY + offsetY + 10); // Arrowhead 1
+      ctx.lineTo(centerX + offsetX + 10, centerY + offsetY + 10); // Arrowhead 2
+      ctx.closePath();
+      ctx.fillStyle = "white";
+      ctx.fill();
+    }
+
+    // Initialize the canvas, geolocation, and check for permissions on load
+    window.onload = () => {
+      initCanvas();
+      initGeolocation();
+      
+      // Show permission button for iOS if required
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        document.getElementById('permission').style.display = 'block';
+      } else {
+        // Initialize orientation directly if no permission required
+        initOrientation();
+      }
+    };
+  </script>
+
+</body>
+</html>
