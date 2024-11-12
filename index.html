@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Earth's Axis Visualization with Orientation Alignment</title>
+  <title>Earth's Axis Visualization</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,6 +11,7 @@
       margin: 0;
       overflow: hidden;
       background-color: black;
+      transition: background-color 0.1s linear;
     }
     #canvas {
       position: absolute;
@@ -34,7 +35,7 @@
   <div id="permission">
     <button onclick="requestPermission()">Enable Sensors</button>
   </div>
-  
+
   <canvas id="canvas"></canvas>
 
   <script>
@@ -51,6 +52,7 @@
     function resizeCanvas() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
+      drawInfiniteAxis();  // Draw the axis whenever the screen is resized
     }
 
     // Request permission for motion sensors on iOS
@@ -80,11 +82,15 @@
           const beta = event.beta || 0;   // tilt forward/backward
           const gamma = event.gamma || 0; // tilt left/right
 
-          // Only show the axis line when the device is aligned with Earth's axis
-          const threshold = 15; // Threshold angle in degrees for alignment
-          
-          if (isAlignedWithEarthAxis(alpha, beta, gamma, threshold)) {
-            drawAxis(alpha, beta, gamma);
+          // Update background color based on orientation
+          const r = Math.floor((alpha / 360) * 255);
+          const g = Math.floor(((beta + 180) / 360) * 255);
+          const b = Math.floor(((gamma + 90) / 180) * 255);
+          document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+          // Only display the axis line when the device is pointing close to Earth's axis direction
+          if (isPointingTowardAxis(beta, gamma)) {
+            drawInfiniteAxis();
           } else {
             clearCanvas();
           }
@@ -92,41 +98,30 @@
       }
     }
 
-    // Check if the device is aligned with the Earth's axis within a certain threshold
-    function isAlignedWithEarthAxis(alpha, beta, gamma, threshold) {
-      // Conditions to consider the device aligned with the axis of rotation
-      // For example, you could set a range around alpha = 0 or 180 and beta = 90 or -90
-      // Adjust these values according to your requirements
-      const alignedAlpha = Math.abs(alpha - 0) < threshold || Math.abs(alpha - 180) < threshold;
-      const alignedBeta = Math.abs(beta - 90) < threshold || Math.abs(beta + 90) < threshold;
-      return alignedAlpha && alignedBeta;
-    }
-
-    // Draw the Earth's axis of rotation as a line on the canvas
-    function drawAxis(alpha, beta, gamma) {
-      clearCanvas();
-      ctx.strokeStyle = "white";
-      ctx.lineWidth = 2;
-
-      const centerX = canvas.width / 2;
-      const centerY = canvas.height / 2;
-      const length = 200;
-
-      // Calculate line angle based on orientation
-      const angle = alpha * (Math.PI / 180); // Convert alpha to radians
-      const offsetX = Math.sin(angle) * length;
-      const offsetY = Math.cos(angle) * length;
-
-      // Draw the line representing Earth's axis
-      ctx.beginPath();
-      ctx.moveTo(centerX - offsetX, centerY - offsetY);
-      ctx.lineTo(centerX + offsetX, centerY + offsetY);
-      ctx.stroke();
+    // Determine if the device is pointing toward the Earth's axis
+    function isPointingTowardAxis(beta, gamma) {
+      const betaThreshold = 15;  // Threshold for tilt forward/backward
+      const gammaThreshold = 15; // Threshold for tilt left/right
+      return Math.abs(beta) < betaThreshold && Math.abs(gamma) < gammaThreshold;
     }
 
     // Clear the canvas
     function clearCanvas() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Draw the static, infinite axis line across the screen
+    function drawInfiniteAxis() {
+      clearCanvas(); // Clear the canvas first
+
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 2;
+
+      // Draw a vertical line that crosses the entire screen (the Earth's axis)
+      ctx.beginPath();
+      ctx.moveTo(canvas.width / 2, 0);
+      ctx.lineTo(canvas.width / 2, canvas.height);
+      ctx.stroke();
     }
 
     // Initialize canvas and sensors on load
