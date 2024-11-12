@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Gyroscope-Based Color Background</title>
+  <title>Orientation-Based Color Background</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -17,50 +17,52 @@
 </head>
 <body>
 
-  <h1>iPhone Sensor Data with Gyroscope Color Background</h1>
+  <h1>iPhone Sensor Data with Orientation Color Background</h1>
   
   <div id="permission" class="sensor">
     <button onclick="requestPermission()">Enable Sensors</button>
   </div>
-
-  <div id="gyroscope" class="sensor"><strong>Gyroscope:</strong> <span id="gyro">N/A</span></div>
+  
+  <div id="orientation" class="sensor"><strong>Orientation:</strong> <span id="orientationData">N/A</span></div>
 
   <script>
     // Request permission for motion sensors on iOS
     function requestPermission() {
-      if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
-        DeviceMotionEvent.requestPermission()
+      if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission()
           .then(response => {
             if (response === 'granted') {
-              initGyroscope();
+              initOrientation();
               document.getElementById('permission').style.display = 'none';
             } else {
-              alert("Permission denied for motion sensors.");
+              alert("Permission denied for orientation sensors.");
             }
           })
           .catch(console.error);
       } else {
-        initGyroscope();
+        initOrientation();
         document.getElementById('permission').style.display = 'none';
       }
     }
 
-    // Gyroscope
-    function initGyroscope() {
-      if (window.DeviceMotionEvent) {
-        window.addEventListener('devicemotion', event => {
-          const g = event.rotationRate;
+    // Orientation
+    function initOrientation() {
+      if (window.DeviceOrientationEvent) {
+        window.addEventListener('deviceorientation', event => {
+          const alpha = event.alpha || 0;
+          const beta = event.beta || 0;
+          const gamma = event.gamma || 0;
           
-          // Update gyroscope display
-          document.getElementById('gyro').innerText = `Alpha: ${g.alpha?.toFixed(2)}, Beta: ${g.beta?.toFixed(2)}, Gamma: ${g.gamma?.toFixed(2)}`;
+          // Update orientation display
+          document.getElementById('orientationData').innerText = `Alpha: ${alpha.toFixed(2)}, Beta: ${beta.toFixed(2)}, Gamma: ${gamma.toFixed(2)}`;
 
-          // Normalize values for RGB (range 0-255)
-          const r = Math.min(255, Math.abs(g.alpha) % 256);
-          const gVal = Math.min(255, Math.abs(g.beta) % 256);
-          const b = Math.min(255, Math.abs(g.gamma) % 256);
+          // Map orientation values to RGB (normalize to 0-255 range)
+          const r = Math.floor((alpha / 360) * 255);
+          const g = Math.floor(((beta + 180) / 360) * 255);
+          const b = Math.floor(((gamma + 90) / 180) * 255);
 
           // Set background color
-          document.body.style.backgroundColor = `rgb(${r}, ${gVal}, ${b})`;
+          document.body.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
         });
       }
     }
