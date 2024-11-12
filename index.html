@@ -3,50 +3,36 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>iPhone Sensor Data</title>
+  <title>Gyroscope-Based Color Background</title>
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin-top: 20px; }
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 20px;
+      transition: background-color 0.1s linear; /* Smooth transition for background */
+    }
     p { font-size: 1.1em; }
     .sensor { margin-bottom: 15px; }
   </style>
 </head>
 <body>
 
-  <h1>iPhone Sensor Data</h1>
+  <h1>iPhone Sensor Data with Gyroscope Color Background</h1>
   
   <div id="permission" class="sensor">
     <button onclick="requestPermission()">Enable Sensors</button>
   </div>
-  
-  <div id="accelerometer" class="sensor"><strong>Accelerometer:</strong> <span id="acceleration">N/A</span></div>
+
   <div id="gyroscope" class="sensor"><strong>Gyroscope:</strong> <span id="gyro">N/A</span></div>
-  <div id="orientation" class="sensor"><strong>Orientation:</strong> <span id="orientationData">N/A</span></div>
-  <div id="geolocation" class="sensor"><strong>Geolocation:</strong> <span id="location">N/A</span></div>
-  <div id="ambientLight" class="sensor"><strong>Ambient Light:</strong> <span id="ambient">N/A</span></div>
-  <div id="proximity" class="sensor"><strong>Proximity:</strong> <span id="proximityData">N/A</span></div>
-  <div id="battery" class="sensor"><strong>Battery:</strong> <span id="batteryData">N/A</span></div>
-  <div id="network" class="sensor"><strong>Network Type:</strong> <span id="networkType">N/A</span></div>
 
   <script>
-    // Initialize sensors
-    function initSensors() {
-      initAccelerometer();
-      initGyroscope();
-      initOrientation();
-      initGeolocation();
-      initAmbientLight();
-      initProximity();
-      initBattery();
-      initNetwork();
-    }
-
     // Request permission for motion sensors on iOS
     function requestPermission() {
       if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
         DeviceMotionEvent.requestPermission()
           .then(response => {
             if (response === 'granted') {
-              initSensors();
+              initGyroscope();
               document.getElementById('permission').style.display = 'none';
             } else {
               alert("Permission denied for motion sensors.");
@@ -54,18 +40,8 @@
           })
           .catch(console.error);
       } else {
-        initSensors();
+        initGyroscope();
         document.getElementById('permission').style.display = 'none';
-      }
-    }
-
-    // Accelerometer
-    function initAccelerometer() {
-      if (window.DeviceMotionEvent) {
-        window.addEventListener('devicemotion', event => {
-          const a = event.accelerationIncludingGravity;
-          document.getElementById('acceleration').innerText = `X: ${a.x?.toFixed(2)}, Y: ${a.y?.toFixed(2)}, Z: ${a.z?.toFixed(2)}`;
-        });
       }
     }
 
@@ -74,72 +50,18 @@
       if (window.DeviceMotionEvent) {
         window.addEventListener('devicemotion', event => {
           const g = event.rotationRate;
+          
+          // Update gyroscope display
           document.getElementById('gyro').innerText = `Alpha: ${g.alpha?.toFixed(2)}, Beta: ${g.beta?.toFixed(2)}, Gamma: ${g.gamma?.toFixed(2)}`;
+
+          // Normalize values for RGB (range 0-255)
+          const r = Math.min(255, Math.abs(g.alpha) % 256);
+          const gVal = Math.min(255, Math.abs(g.beta) % 256);
+          const b = Math.min(255, Math.abs(g.gamma) % 256);
+
+          // Set background color
+          document.body.style.backgroundColor = `rgb(${r}, ${gVal}, ${b})`;
         });
-      }
-    }
-
-    // Orientation
-    function initOrientation() {
-      if (window.DeviceOrientationEvent) {
-        window.addEventListener('deviceorientation', event => {
-          document.getElementById('orientationData').innerText = `Alpha: ${event.alpha?.toFixed(2)}, Beta: ${event.beta?.toFixed(2)}, Gamma: ${event.gamma?.toFixed(2)}`;
-        });
-      }
-    }
-
-    // Geolocation
-    function initGeolocation() {
-      if (navigator.geolocation) {
-        navigator.geolocation.watchPosition(position => {
-          const { latitude, longitude, accuracy } = position.coords;
-          document.getElementById('location').innerText = `Latitude: ${latitude.toFixed(5)}, Longitude: ${longitude.toFixed(5)}, Accuracy: ${accuracy.toFixed(2)}m`;
-        }, error => {
-          document.getElementById('location').innerText = "Geolocation error: " + error.message;
-        }, { enableHighAccuracy: true });
-      }
-    }
-
-    // Ambient Light
-    function initAmbientLight() {
-      if ('AmbientLightSensor' in window) {
-        const sensor = new AmbientLightSensor();
-        sensor.onreading = () => document.getElementById('ambient').innerText = `${sensor.illuminance} lux`;
-        sensor.onerror = event => document.getElementById('ambient').innerText = `Ambient Light error: ${event.error}`;
-        sensor.start();
-      }
-    }
-
-    // Proximity
-    function initProximity() {
-      if ('ProximitySensor' in window) {
-        const sensor = new ProximitySensor();
-        sensor.onreading = () => document.getElementById('proximityData').innerText = `Distance: ${sensor.distance}cm, Near: ${sensor.near}`;
-        sensor.onerror = event => document.getElementById('proximityData').innerText = `Proximity error: ${event.error}`;
-        sensor.start();
-      }
-    }
-
-    // Battery Status
-    function initBattery() {
-      if ('getBattery' in navigator) {
-        navigator.getBattery().then(battery => {
-          function updateBatteryStatus() {
-            document.getElementById('batteryData').innerText = `Level: ${(battery.level * 100).toFixed(0)}%, Charging: ${battery.charging}`;
-          }
-          updateBatteryStatus();
-          battery.onchargingchange = updateBatteryStatus;
-          battery.onlevelchange = updateBatteryStatus;
-        });
-      }
-    }
-
-    // Network Information
-    function initNetwork() {
-      if ('connection' in navigator) {
-        const connection = navigator.connection;
-        document.getElementById('networkType').innerText = connection.effectiveType || "Unknown";
-        connection.onchange = () => document.getElementById('networkType').innerText = connection.effectiveType;
       }
     }
 
